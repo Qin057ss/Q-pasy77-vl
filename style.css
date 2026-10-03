@@ -1,0 +1,145 @@
+#psy-panel {
+  position: fixed;
+  right: 20px;
+  bottom: 90px;
+  width: 260px;
+  max-height: 70vh;
+  background: rgba(20, 24, 32, 0.94);
+  border: 1px solid #2a3140;
+  border-radius: 14px;
+  color: #e8edf5;
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 12px;
+  z-index: 99998;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.6);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#psy-panel .psy-head {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #2a3140;
+  cursor: move;
+  user-select: none;
+  font-weight: 600;
+  font-size: 13px;
+  background: rgba(30, 36, 48, 0.6);
+}
+#psy-panel .psy-head .close {
+  cursor: pointer;
+  color: #8b96a8;
+  padding: 0 4px;
+}
+#psy-panel .psy-head .close:hover { color: #ff5c7a; }
+
+#psy-panel .psy-body {
+  padding: 10px 12px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+#psy-panel .psy-body::-webkit-scrollbar { width: 4px; }
+#psy-panel .psy-body::-webkit-scrollbar-thumb {
+  background: #2a3140;
+  border-radius: 2px;
+}
+
+#psy-panel .psy-char {
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #2a3140;
+}
+#psy-panel .psy-char:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+#psy-panel .psy-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #4f8cff;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+#psy-panel .psy-row {
+  margin-bottom: 10px;
+}
+#psy-panel .psy-row:last-child { margin-bottom: 0; }
+
+#psy-panel .psy-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #8b96a8;
+  margin-bottom: 3px;
+}
+#psy-panel .psy-label b {
+  color: #e8edf5;
+  font-weight: 600;
+}
+
+#psy-panel .psy-bar {
+  height: 8px;
+  border-radius: 5px;
+  background: #1e2430;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+#psy-panel .psy-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.5s ease;
+}
+#psy-panel .psy-bar.think i {
+  background: linear-gradient(90deg, #1e4fff, #66aaff);
+}
+#psy-panel .psy-bar.emo i {
+  background: linear-gradient(90deg, #ff3b5c, #ff8899);
+}
+#psy-panel .psy-bar.phy i {
+  background: linear-gradient(90deg, #7c5cff, #b28cff);
+}
+
+#psy-panel .psy-note {
+  font-size: 11px;
+  color: #a8b2c2;
+  line-height: 1.5;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+#psy-panel .psy-empty {
+  color: #8b96a8;
+  font-size: 11px;
+  text-align: center;
+  padding: 20px 0;
+}
+
+#psy-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 90px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c5cff, #4f8cff);
+  color: #fff;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 99999;
+  box-shadow: 0 4px 14px rgba(79,140,255,0.5);
+  user-select: none;
+  transition: transform 0.15s;
+}
+#psy-fab:hover { transform: scale(1.08); }
