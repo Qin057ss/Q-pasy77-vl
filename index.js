@@ -1,14 +1,10 @@
 /* =========================================================
-   心理状态实时栏 · 酒馆扩展
+   心理状态实时栏 · 酒馆扩展 v1.1
    ========================================================= */
 
-const PSY_MODULE = "psy-panel";
 const PSY_STORAGE = "psy_panel_data";
 
-/* ---------- 数据存储 ---------- */
-let PSY = {
-  characters: {}
-};
+let PSY = { characters: {} };
 
 function loadPsy() {
   try {
@@ -34,14 +30,27 @@ function getWorldCharacters() {
         return content.split(/[、,，\/\s\n]+/).map(s => s.trim()).filter(Boolean);
       }
     }
-  } catch (e) { console.warn("[心理栏] 读世界书失败", e); }
+  } catch (e) {}
   return [];
+}
+
+/* ---------- 角色名是否合法 ---------- */
+function isValidName(name) {
+  if (!name) return false;
+  name = name.trim();
+  if (name.length === 0 || name.length > 20) return false;
+  // 不能包含这些字符
+  if (/[<>|｜\[\]{}（）()「」『』\/\\:：,，。\.、\s]/.test(name)) return false;
+  // 不能是纯数字或纯符号
+  if (/^[\d\W]+$/.test(name)) return false;
+  return true;
 }
 
 /* ---------- 解析 AI 输出里的 [心理状态] ---------- */
 function parsePsyBlock(text) {
-  const re = /\[心理状态\]([\s\S]*?)(?=\n\[[^\]]+\]|$)/;
-  const m = text.match(re);
+  // 只匹配 [心理状态] 开始，到下一个 [xxx] 块或结束
+  const blockRe = /\[心理状态\]([\s\S]*?)(?=\n\s*\[[^\]]{1,20}\][^]*$|$)/;
+  const m = text.match(blockRe);
   if (!m) return null;
 
   const body = m[1];
@@ -53,6 +62,18 @@ function parsePsyBlock(text) {
     line = line.trim();
     if (!line) continue;
 
+    // 跳过 HTML 标签行
+    if (/^<\/?(details|summary|status|div|span|p|br)/i.test(line)) {
+      currentChar = null;
+      continue;
+    }
+    // 跳过包含标签的行
+    if (/<[a-zA-Z\/]/.test(line)) {
+      currentChar = null;
+      continue;
+    }
+
+    // 类型行： 思维：50%|备注
     let typeMatch = line.match(/^(思维|情感心理|情感|生理)[:：]\s*(\d+)%?\s*[|｜]?\s*(.*)$/);
     if (typeMatch && currentChar) {
       const [, type, val, note] = typeMatch;
@@ -61,20 +82,29 @@ function parsePsyBlock(text) {
       continue;
     }
 
-    let nameMatch = line.match(/^([^:：]+)[:：]?\s*$/);
-    if (nameMatch && !line.match(/思维|情感|生理/)) {
-      currentChar = nameMatch[1].trim();
-      result[currentChar] = result[currentChar] || {};
+    // 名字行： 小茉莉： 或 小茉莉
+    let nameMatch = line.match(/^([^:：<>|｜\[\]{}（）()「」]{1,20})[:：]?\s*$/);
+    if (nameMatch) {
+      const name = nameMatch[1].trim();
+      if (isValidName(name)) {
+        currentChar = name;
+        result[currentChar] = result[currentChar] || {};
+      } else {
+        currentChar = null;
+      }
       continue;
     }
 
-    let inlineMatch = line.match(/^([^:：]+)[:：]\s*(思维|情感心理|情感|生理)[:：]\s*(\d+)%?\s*[|｜]?\s*(.*)$/);
+    // 行内带名字： 小茉莉：思维：50%|备注
+    let inlineMatch = line.match(/^([^:：<>|｜\[\]{}（）()「」]{1,20})[:：]\s*(思维|情感心理|情感|生理)[:：]\s*(\d+)%?\s*[|｜]?\s*(.*)$/);
     if (inlineMatch) {
       const [, name, type, val, note] = inlineMatch;
       const charName = name.trim();
-      result[charName] = result[charName] || {};
-      const key = mapType(type);
-      result[charName][key] = { v: parseInt(val), note: note.trim() };
+      if (isValidName(charName)) {
+        result[charName] = result[charName] || {};
+        const key = mapType(type);
+        result[charName][key] = { v: parseInt(val), note: note.trim() };
+      }
       continue;
     }
   }
@@ -94,7 +124,9 @@ function renderPanel() {
   const body = document.querySelector("#psy-panel .psy-body");
   if (!body) return;
 
-  const chars = Object.keys(PSY.characters);
+  // 过滤掉非法角色名
+  const chars = Object.keys(PSY.characters).filter(isValidName);
+
   if (!chars.length) {
     body.innerHTML = '<div class="psy-empty">等待剧情推进…</div>';
     return;
@@ -191,43 +223,21 @@ function onMessageReceived(messageId) {
     const parsed = parsePsyBlock(text);
     if (parsed) {
       for (const name in parsed) {
+        if (!isValidName(name)) continue;
         PSY.characters[name] = Object.assign(
           PSY.characters[name] || {},
           parsed[name]
         );
       }
+      // 清掉非法角色
+      for (const k in PSY.characters) {
+        if (!isValidName(k)) delete PSY.characters[k];
+      }
       savePsy();
       renderPanel();
     }
-
-    const worldChars = getWorldCharacters();
-    let changed = false;
-    for (const name of worldChars) {
-      if (!PSY.characters[name]) {
-        PSY.characters[name] = {
-          think: { v: 50, note: "…" },
-          emo:   { v: 50, note: "…" },
-          phy:   { v: 50, note: "…" }
-        };
-        changed = true;
-      }
-    }
-    if (changed) { savePsy(); renderPanel(); }
-
-    hidePsyBlock(messageId);
   } catch (e) {
     console.warn("[心理栏] 处理失败", e);
-  }
-}
-
-/* ---------- 隐藏消息里的 [心理状态] 段 ---------- */
-function hidePsyBlock(messageId) {
-  const el = document.querySelector('.mes[mesid="' + messageId + '"] .mes_text');
-  if (!el) return;
-  const html = el.innerHTML;
-  const re = /(\[心理状态\][\s\S]*?)(?=\n\[[^\]]+\]|<br\s*\/?>|$)/;
-  if (re.test(html)) {
-    el.innerHTML = html.replace(re, '<span style="display:none">$1</span>');
   }
 }
 
@@ -247,5 +257,5 @@ jQuery(async () => {
     renderPanel();
   });
 
-  console.log("[心理状态实时栏] 已加载");
+  console.log("[心理状态实时栏] 已加载 v1.1");
 });
